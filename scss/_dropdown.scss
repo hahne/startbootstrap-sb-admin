@@ -1,0 +1,53 @@
+.dropdown-toggle {
+    white-space: normal;
+  
+    // Generate the caret automatically
+    @include caret;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%; // For `<button>`s
+    padding: $dropdown-item-padding-y $dropdown-item-padding-x;
+    clear: both;
+    font-weight: $font-weight-normal;
+    color: fade-out($primary, 0.25);
+    text-align: inherit; // For `<button>`s
+    white-space: normal;
+    background-color: transparent; // For `<button>`s
+    border: 0; // For `<button>`s
+  
+    // Prevent dropdown overflow if there's no padding
+    // See https://github.com/twbs/bootstrap/pull/27703
+    @if $dropdown-padding-y == 0 {
+      &:first-child {
+        @include border-top-radius($dropdown-inner-border-radius);
+      }
+  
+      &:last-child {
+        @include border-bottom-radius($dropdown-inner-border-radius);
+      }
+    }
+    @include hover-focus {
+        color: $primary;
+        text-decoration: none;
+      }
+    
+      &.active,
+      &:active {
+        color: $primary;
+        text-decoration: none;
+        background-color: transparent;
+      }
+    
+      &.disabled,
+      &:disabled {
+        color: fade-out($primary, 0.75);
+        pointer-events: none;
+        background-color: transparent;
+        // Remove CSS gradients if they're enabled
+        @if $enable-gradients {
+          background-image: none;
+        }
+      }
+}

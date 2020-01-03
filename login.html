@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 
 <head>
 
@@ -9,7 +9,7 @@
   <meta name="description" content="">
   <meta name="author" content="">
 
-  <title>SB Admin - Login</title>
+  <title>SV Freihausen</title>
 
   <!-- Custom fonts for this template-->
   <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -20,37 +20,29 @@
 </head>
 
 <body class="bg-dark">
-
   <div class="container">
     <div class="card card-login mx-auto mt-5">
-      <div class="card-header">Login</div>
+      <div class="card-header">Anmeldung SVF-Intern</div>
       <div class="card-body">
-        <form>
+        <div id="error-message-container"></div>
+        <form id="loginDialog" action="https://mobile.svfreihausen.de/ws/login_webservice.php" method="post" accept-charset="UTF-8" >
           <div class="form-group">
             <div class="form-label-group">
-              <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required="required" autofocus="autofocus">
-              <label for="inputEmail">Email address</label>
+              <input name="Benutzername" type="text" id="inputUser" class="form-control" placeholder="Benutzername" required="required" autofocus="autofocus">
+              <label for="inputUser">Benutzername</label>
             </div>
           </div>
           <div class="form-group">
             <div class="form-label-group">
-              <input type="password" id="inputPassword" class="form-control" placeholder="Password" required="required">
-              <label for="inputPassword">Password</label>
+              <input name="Kennwort" type="password" id="inputPassword" class="form-control" placeholder="Passwort" required="required">
+              <label for="inputPassword">Passwort</label>
             </div>
           </div>
-          <div class="form-group">
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" value="remember-me">
-                Remember Password
-              </label>
-            </div>
-          </div>
-          <a class="btn btn-primary btn-block" href="index.html">Login</a>
+          <button type="submit" class="btn btn-primary btn-block">Login</button>
         </form>
         <div class="text-center">
-          <a class="d-block small mt-3" href="register.html">Register an Account</a>
-          <a class="d-block small" href="forgot-password.html">Forgot Password?</a>
+          <a class="d-block small mt-3" href="register.html">Registrieren</a>
+          <a class="d-block small" href="forgot-password.html">Passwort vergessen?</a>
         </div>
       </div>
     </div>
@@ -62,6 +54,54 @@
 
   <!-- Core plugin JavaScript-->
   <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+  <script type="text/javascript">
+  $(document).ready(function() {
+    var options = { 
+      target: 'https://mobile.svfreihausen.de/ws/login_webservice.php'
+    };
+ 
+    $('#loginDialog').submit(function() {
+
+        var data = new FormData();
+        data.append( "Benutzername", $("#inputUser").val() );
+        data.append( "Kennwort", $("#inputPassword").val() );
+
+        const LoginInit = {
+          method: 'POST',
+          cache: 'reload',
+          credentials: 'include',
+          mode: 'cors',
+          referrerPolicy: 'no-referrer-when-downgrade',
+          body: data
+        };
+ 
+        fetch("https://mobile.svfreihausen.de/ws/login_webservice.php", LoginInit)
+        .then(res => res.json())
+        .then(
+          (result) => {
+            if(result.error_code == 0)
+            {
+              window.location = "events.html";
+            }
+            else
+            {
+              err_el = $('<div class="alert alert-danger" role="alert"></div>')
+              .html(result.error_message);
+              $('#error-message-container').html(err_el);
+            }
+          },
+          (error) => {
+            err_el = $('<div class="alert alert-danger" role="alert"></div>')
+              .html(error);
+              $('#error-message-container').html(err_el);
+          }
+        )
+	      return false; 
+    });
+  });
+  </script>
+
 
 </body>
 
