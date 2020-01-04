@@ -49,8 +49,10 @@ class EnrollComponent extends React.Component {
     }
 
     componentDidUpdate(prevProps) {
-        // Typical usage (don't forget to compare props):
-        if (this.props.event_id !== prevProps.event_id || this.props.appointment_id !== prevProps.appointment_id) {
+        if (this.props.event_id !== prevProps.event_id || 
+            this.props.appointment_id !== prevProps.appointment_id ||
+            this.props.deregister !== prevProps.deregister)
+        {
             this.fetch_enroll();
         }
     }
@@ -68,18 +70,30 @@ class EnrollComponent extends React.Component {
         } else if (!isLoaded) {
             return <div>Loading...</div>;
         } else {
-            enroll_action = "angemeldet";
-            if(data.deregister)
+            
+            if(data.error_code == 0)
             {
-                enroll_action = "abgemeldet";
+                enroll_action = "angemeldet";
+                if(data.deregister)
+                {
+                    enroll_action = "abgemeldet";
+                }
+                return (
+                    <div>
+                        <p>Sie haben sich für folgenden Termin {enroll_action}:</p>
+                        <p><strong>Veranstaltung:</strong> {data.name}<br />
+                        <strong>Datum / Zeit:</strong> {data.datetime}</p>
+                    </div>
+                );
             }
-            return (
-                <div>
-                    <p>Sie haben sich für folgenden Termin {enroll_action}:</p>
-                    <p><strong>Veranstaltung:</strong> {data.name}<br />
-                    <strong>Datum / Zeit:</strong> {data.datetime}</p>
-                </div>
-            );
+            else
+            {
+                return (
+                    <div>
+                        <p>{data.error_message}</p>
+                    </div>
+                );
+            }
         }
     }
 
@@ -156,39 +170,48 @@ class ParticipantsComponent extends React.Component {
 
 function ListParticipants(props)
 {
-    attendeesItems = <li>-/-</li>;
-    waitlistItems = <li>-/-</li>;
+    if(props.data.error_code == 0)
+    {
+        attendeesItems = <li>-/-</li>;
+        waitlistItems = <li>-/-</li>;
 
-    visible_attendees = props.data.visible_attendees;
-    visible_waitlist = props.data.visible_waitlist;
+        visible_attendees = props.data.visible_attendees;
+        visible_waitlist = props.data.visible_waitlist;
 
-    if(visible_attendees) {
-        attendeesItems = visible_attendees.map((attendee) =>
-            <li>{attendee}</li>
+        if(visible_attendees) {
+            attendeesItems = visible_attendees.map((attendee) =>
+                <li>{attendee}</li>
+            );
+        }
+        
+        if(visible_waitlist) {
+            waitlistItems = visible_waitlist.map((attendee) =>
+                <li>{attendee}</li>
+            );
+        }
+        return (
+            <div>
+                <p><strong>Veranstaltung:</strong> {props.data.name}<br />
+                <strong>Datum / Zeit:</strong> {props.data.datetime}</p>
+                <h6>Teilnehmer:</h6>
+                <ul>
+                    {attendeesItems}
+                    <li>+{props.data.hidden_attendees} weitere Teilnehmer.</li>
+                </ul>
+                <h6>Auf der Warteliste:</h6>
+                <ul>
+                    {waitlistItems}
+                    <li>+{props.data.hidden_waitlist} weitere Teilnehmer.</li>
+                </ul>
+            </div>
         );
     }
-    
-    if(visible_waitlist) {
-        waitlistItems = visible_waitlist.map((attendee) =>
-            <li>{attendee}</li>
+    else
+    {
+        return (
+            <div><p>{props.data.error_message}</p></div>
         );
     }
-    return (
-        <div>
-            <p><strong>Veranstaltung:</strong> {props.data.name}<br />
-            <strong>Datum / Zeit:</strong> {props.data.datetime}</p>
-            <h6>Teilnehmer:</h6>
-            <ul>
-                {attendeesItems}
-                <li>+{props.data.hidden_attendees} weitere Teilnehmer.</li>
-            </ul>
-            <h6>Auf der Warteliste:</h6>
-            <ul>
-                {waitlistItems}
-                <li>+{props.data.hidden_waitlist} weitere Teilnehmer.</li>
-            </ul>
-        </div>
-    );
 }
 
 
@@ -250,7 +273,6 @@ class TermElement extends React.Component {
         bgImage = "fas fa-fw fa-calendar-alt";
         termAction = "Anmelden";
         termFull = appointment.num_attendees >= this.props.max_attendees;
-        deregister = true;
         if(termFull)
         {
             bgClass = "card bg-warning o-hidden h-100";
@@ -262,7 +284,6 @@ class TermElement extends React.Component {
             bgClass = "card bg-success o-hidden h-100";
             bgImage = "fas fa-fw fa-check";
             termAction = "Abmelden";
-            deregister = false;
             
             if(appointment.on_wait_list)
             {
@@ -286,7 +307,7 @@ class TermElement extends React.Component {
                     </button>
                 </div>
                 </div>
-                <a onClick={(e) => this.EnrollEvent(this.props.event_id, this.props.appointment.appointment_id, deregister, e)} href="#" class="card-footer clearfix small z-1" data-toggle="modal" data-target="#EnrollModal">
+                <a onClick={(e) => this.EnrollEvent(this.props.event_id, this.props.appointment.appointment_id, this.props.appointment.user_attendance, e)} href="#" class="card-footer clearfix small z-1" data-toggle="modal" data-target="#EnrollModal">
                     <span class="float-left">{termAction}</span>
                     <span class="float-right">
                         <i class="fas fa-angle-right"></i>
@@ -344,13 +365,18 @@ function RenderEventNav(events) {
 function EventElements(props) {
     if(!props.data.logged_in)
     {
-        window.location = "login.html";
+        window.location.replace("login.html");
         return (<p>Sie müssen sich erst einloggen!</p>);
     }
 
     if(!props.data.access_permission)
     {
         return (<p>Sie haben nicht die notwendigen Rechte für diesen Bereich!</p>);
+    }
+
+    if(props.data.error_code != 0)
+    {
+        return (<p>{props.data.error_message}</p>);
     }
 
     const eventItems = props.data.events.map((eventItem) =>
@@ -400,6 +426,7 @@ class EventsComponent extends React.Component {
     }
   
     componentDidMount() {
+        update_event_overview = false;
         this.fetch_events();
     }
 
@@ -411,16 +438,16 @@ class EventsComponent extends React.Component {
     }
   
     render() {
-      const { error, isLoaded, data } = this.state;
-      if (error) {
-        return <div>Error: {error.message}</div>;
-      } else if (!isLoaded) {
-        return <div>Loading...</div>;
-      } else {
-        return (
-            <EventElements data={data} />
-        );
-      }
+        const { error, isLoaded, data } = this.state;
+        if (error) {
+            return <div>Error: {error.message}</div>;
+        } else if (!isLoaded) {
+            return <div>Loading...</div>;
+        } else {
+            return (
+                <EventElements data={data} />
+            );
+        }
     }
   }
 
